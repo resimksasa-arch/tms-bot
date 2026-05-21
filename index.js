@@ -1,4 +1,4 @@
-require('dotenv').config();
+    require('dotenv').config();
 const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
 const roblox = require('./roblox');
 const fs = require('fs');
@@ -443,7 +443,9 @@ client.on('interactionCreate', async interaction => {
     }
 
     // 2. KULLANANIN ROBLOX ADI — nickname'den al
-    const verenAdi = interaction.member.nickname || interaction.user.username;
+    const rawNick = interaction.member.nickname || interaction.user.username;
+    // RoWifi bazen "RobloxAdi | Rütbe" formatında ayarlar, sadece ilk kısmı al
+    const verenAdi = rawNick.split(/[\s|]/)[0].trim();
     const verenId = await roblox.getUserId(verenAdi);
     if (!verenId) {
       return interaction.editReply({ embeds: [errorEmbed('Roblox Hesabı Bulunamadı', `Discord nickname'in (**${verenAdi}**) Roblox'ta bulunamadı. RoWifi ile doğrula.`)] });
