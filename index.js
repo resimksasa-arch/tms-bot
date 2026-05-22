@@ -2,6 +2,7 @@
 const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
 const roblox = require('./roblox');
 const fs = require('fs');
+const axios = require('axios');
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 
@@ -442,13 +443,24 @@ client.on('interactionCreate', async interaction => {
       }
     }
 
-    // 2. KULLANANIN ROBLOX ADI — nickname'den al
-    const rawNick = interaction.member.nickname || interaction.user.username;
-    // RoWifi bazen "RobloxAdi | Rütbe" formatında ayarlar, sadece ilk kısmı al
-    const verenAdi = rawNick.split(/[\s|]/)[0].trim();
-    const verenId = await roblox.getUserId(verenAdi);
+    // 2. KULLANANIN ROBLOX ID'Sİ — RoWifi API ile doğrulanmış hesabı al
+    let verenId = null;
+    let verenAdi = null;
+    try {
+      const rowifiRes = await axios.get(
+        `https://api.rowifi.xyz/v2/guilds/${interaction.guildId}/members/${interaction.user.id}`,
+        { headers: { 'Authorization': `Bot ${process.env.ROWIFI_API_KEY}` } }
+      );
+      verenId = rowifiRes.data.roblox_id;
+      // Roblox adını al
+      const robloxUserRes = await axios.get(`https://users.roblox.com/v1/users/${verenId}`);
+      verenAdi = robloxUserRes.data.name;
+    } catch (err) {
+      return interaction.editReply({ embeds: [errorEmbed('Hesap Doğrulanmamış', 'RoWifi ile Roblox hesabını doğrulamadın. `/verify` komutunu kullan.')] });
+    }
+
     if (!verenId) {
-      return interaction.editReply({ embeds: [errorEmbed('Roblox Hesabı Bulunamadı', `Discord nickname'in (**${verenAdi}**) Roblox'ta bulunamadı. RoWifi ile doğrula.`)] });
+      return interaction.editReply({ embeds: [errorEmbed('Hesap Doğrulanmamış', 'RoWifi ile Roblox hesabını doğrulamadın. `/verify` komutunu kullan.')] });
     }
 
     const verenRank = await roblox.getUserRankInGroup(verenId);
