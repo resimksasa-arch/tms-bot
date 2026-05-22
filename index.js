@@ -484,6 +484,11 @@ client.on('interactionCreate', async interaction => {
     if (!hedefId) {
       return interaction.editReply({ embeds: [errorEmbed('Hedef Bulunamadı', `**${hedefAdi}** adlı Roblox kullanıcısı bulunamadı.`)] });
     }
+
+    // Kendine rütbe veremesin
+    if (hedefId === verenId) {
+      return interaction.editReply({ embeds: [errorEmbed('Geçersiz İşlem', 'Kendine rütbe veremezsin.')] });
+    }
     const hedefRank = await roblox.getUserRankInGroup(hedefId);
     if (hedefRank === 0) {
       return interaction.editReply({ embeds: [errorEmbed('Hedef Grupta Değil', `**${hedefAdi}** grupta üye değil.`)] });
