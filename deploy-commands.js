@@ -64,6 +64,15 @@ const commands = [
        .setRequired(true)
     ),
 
+  new SlashCommandBuilder()
+    .setName('tamyasakkaldir')
+    .setDescription('Kullanıcının tüm bağlı sunuculardaki banını kaldır')
+    .addStringOption(o =>
+      o.setName('kullanici-id')
+       .setDescription('Banı kaldırılacak kullanıcının Discord ID\'si')
+       .setRequired(true)
+    ),
+
 ].map(cmd => cmd.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);

@@ -1,3 +1,4 @@
+    
     require('dotenv').config();
 const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
 const roblox = require('./roblox');
@@ -286,7 +287,6 @@ client.on('interactionCreate', async interaction => {
   if (cmd === 'tamyasakla') {
     await interaction.deferReply({ ephemeral: false });
 
-    // Sadece yetkililer kullanabilir
     if (!interaction.member.roles.cache.has(process.env.YETKILI_ROL_ID)) {
       return interaction.editReply({ embeds: [errorEmbed('Yetersiz Yetki', 'Bu komutu kullanmak için yetkin yok.')] });
     }
@@ -296,14 +296,10 @@ client.on('interactionCreate', async interaction => {
     const sunucular = process.env.BAGLI_SUNUCULAR.split(',').map(s => s.trim()).filter(Boolean);
 
     const sonuclar = [];
-
     for (const sunucuId of sunucular) {
       try {
         const sunucu = client.guilds.cache.get(sunucuId);
-        if (!sunucu) {
-          sonuclar.push(`⚠️ \`${sunucuId}\` — Bot bu sunucuda değil`);
-          continue;
-        }
+        if (!sunucu) { sonuclar.push(`⚠️ \`${sunucuId}\` — Bot bu sunucuda değil`); continue; }
         await sunucu.members.ban(hedefKullanici.id, { reason: `[TAM YASAK] ${sebep} | Yapan: ${interaction.user.tag}` });
         sonuclar.push(`✅ **${sunucu.name}** — Banlandı`);
       } catch (err) {
@@ -319,6 +315,47 @@ client.on('interactionCreate', async interaction => {
         { name: '👤 Kullanıcı', value: `${hedefKullanici} (${hedefKullanici.tag})`, inline: true },
         { name: '🛡️ Yapan', value: `${interaction.user}`, inline: true },
         { name: '📝 Sebep', value: sebep, inline: false },
+        { name: '📊 Sonuçlar', value: sonuclar.join('\n') || 'Sonuç yok', inline: false }
+      )
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [embed] });
+    return;
+  }
+
+  // ── /TAMYASAKKALDIR ──
+  if (cmd === 'tamyasakkaldir') {
+    await interaction.deferReply({ ephemeral: false });
+
+    if (!interaction.member.roles.cache.has(process.env.YETKILI_ROL_ID)) {
+      return interaction.editReply({ embeds: [errorEmbed('Yetersiz Yetki', 'Bu komutu kullanmak için yetkin yok.')] });
+    }
+
+    const kullaniciId = interaction.options.getString('kullanici-id').trim();
+    const sunucular = process.env.BAGLI_SUNUCULAR.split(',').map(s => s.trim()).filter(Boolean);
+
+    const sonuclar = [];
+    for (const sunucuId of sunucular) {
+      try {
+        const sunucu = client.guilds.cache.get(sunucuId);
+        if (!sunucu) { sonuclar.push(`⚠️ \`${sunucuId}\` — Bot bu sunucuda değil`); continue; }
+        await sunucu.members.unban(kullaniciId, `Yapan: ${interaction.user.tag}`);
+        sonuclar.push(`✅ **${sunucu.name}** — Ban kaldırıldı`);
+      } catch (err) {
+        if (err.code === 10026) {
+          sonuclar.push(`ℹ️ **${sunucu?.name || sunucuId}** — Zaten banlı değil`);
+        } else {
+          sonuclar.push(`❌ \`${sunucuId}\` — ${err.message}`);
+        }
+      }
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor(0x2ecc71)
+      .setTitle('✅ Tam Yasak Kaldırıldı')
+      .addFields(
+        { name: '👤 Kullanıcı ID', value: kullaniciId, inline: true },
+        { name: '🛡️ Yapan', value: `${interaction.user}`, inline: true },
         { name: '📊 Sonuçlar', value: sonuclar.join('\n') || 'Sonuç yok', inline: false }
       )
       .setTimestamp();
@@ -405,7 +442,7 @@ client.on('interactionCreate', async interaction => {
   if (cmd === 'aktif') {
     await interaction.deferReply({ ephemeral: false });
     const ekMesaj = interaction.options.getString('mesaj');
-    const oyunLinki = 'https://www.roblox.com/share?code=39585213feb70c49aefd80ba66c143ff&type=ExperienceDetails&stamp=1778906888366';
+    const oyunLinki = 'https://www.roblox.com/tr/games/138943597146402/T-rk-Asker-Oyunu';
 
     const embed = new EmbedBuilder()
       .setColor(0xe74c3c)
