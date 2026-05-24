@@ -441,6 +441,11 @@ client.on('interactionCreate', async interaction => {
   // ── /AKTİF ──
   if (cmd === 'aktif') {
     await interaction.deferReply({ ephemeral: false });
+
+    // Yetki kontrolü
+    if (!interaction.member.roles.cache.has('1505537968276901938')) {
+      return interaction.editReply({ embeds: [errorEmbed('Yetersiz Yetki', 'Bu komutu kullanmak için gerekli role sahip değilsin.')] });
+    }
     const ekMesaj = interaction.options.getString('mesaj');
     const oyunLinki = 'https://www.roblox.com/tr/games/138943597146402/T-rk-Asker-Oyunu';
 
@@ -574,6 +579,22 @@ client.on('interactionCreate', async interaction => {
   } catch (err) {
     console.error(`${cmd} hatası:`, err.message);
     await interaction.editReply({ embeds: [errorEmbed('Bir Hata Oluştu', `\`\`\`${err.message}\`\`\``)] });
+  }
+});
+
+client.on('messageCreate', async message => {
+  if (message.author.bot) return;
+  if (message.content.toLowerCase() === '!grup') {
+    const embed = new EmbedBuilder()
+      .setColor(0xe74c3c)
+      .setTitle('🎮 | TMS | Turkish Military Simulatör')
+      .setDescription('Grubumuzа katılmak için aşağıdaki linke tıkla!')
+      .addFields(
+        { name: '🔗 Grup Linki', value: '[Gruba Katıl](https://www.roblox.com/groups/493884664)' },
+        { name: '🎮 Oyun Linki', value: '[Oyunu Oyna](https://www.roblox.com/tr/games/138943597146402/T-rk-Asker-Oyunu)' }
+      )
+      .setTimestamp();
+    await message.reply({ embeds: [embed] });
   }
 });
 
