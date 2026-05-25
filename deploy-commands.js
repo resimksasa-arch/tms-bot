@@ -65,6 +65,10 @@ const commands = [
     ),
 
   new SlashCommandBuilder()
+    .setName('grup')
+    .setDescription('TMS grup ve oyun linklerini göster'),
+
+  new SlashCommandBuilder()
     .setName('tamyasakkaldir')
     .setDescription('Kullanıcının tüm bağlı sunuculardaki banını kaldır')
     .addStringOption(o =>

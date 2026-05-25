@@ -29,6 +29,10 @@ async function loginRoblox() {
 
 client.once('ready', async () => {
   console.log(`✅ Discord botu hazır: ${client.user.tag}`);
+  client.user.setPresence({
+    activities: [{ name: 'Made by Ryena', type: 4 }],
+    status: 'online'
+  });
   await loginRoblox();
 });
 
@@ -282,6 +286,21 @@ client.on('interactionCreate', async interaction => {
 
   if (!interaction.isChatInputCommand()) return;
   const cmd = interaction.commandName;
+
+  // ── /GRUP ──
+  if (cmd === 'grup') {
+    const embed = new EmbedBuilder()
+      .setColor(0xe74c3c)
+      .setTitle('🎖️ | TMS | Turkish Military Simulatör')
+      .setDescription('Grubumuza katılmak için aşağıdaki linke tıkla!')
+      .addFields(
+        { name: '🔗 Grup Linki', value: '[Gruba Katıl](https://www.roblox.com/groups/493884664)' },
+        { name: '🎮 Oyun Linki', value: '[Oyunu Oyna](https://www.roblox.com/tr/games/138943597146402/T-rk-Asker-Oyunu)' }
+      )
+      .setTimestamp();
+    await interaction.reply({ embeds: [embed] });
+    return;
+  }
 
   // ── /TAMYASAKLA ──
   if (cmd === 'tamyasakla') {
