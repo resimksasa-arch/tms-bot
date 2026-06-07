@@ -287,6 +287,22 @@ client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
   const cmd = interaction.commandName;
 
+  // ── /PING ──
+  if (cmd === 'ping') {
+    const latency = Date.now() - interaction.createdTimestamp;
+    const apiLatency = Math.round(client.ws.ping);
+    const embed = new EmbedBuilder()
+      .setColor(0x3498db)
+      .setTitle('🏓 Pong!')
+      .addFields(
+        { name: '⏱️ Bot Gecikmesi', value: `\`${latency}ms\``, inline: true },
+        { name: '💡 API Gecikmesi', value: `\`${apiLatency}ms\``, inline: true }
+      )
+      .setTimestamp();
+    await interaction.reply({ embeds: [embed] });
+    return;
+  }
+
   // ── /GRUP ──
   if (cmd === 'grup') {
     const embed = new EmbedBuilder()

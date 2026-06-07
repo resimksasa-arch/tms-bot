@@ -79,16 +79,30 @@ const commands = [
 
 ].map(cmd => cmd.toJSON());
 
+// Global komutlar (bot profilinde slash simgesi görünmesi için)
+const globalCommands = [
+  new SlashCommandBuilder()
+    .setName('ping')
+    .setDescription('Botun gecikmesini göster'),
+].map(cmd => cmd.toJSON());
+
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
 (async () => {
   try {
-    console.log('Slash komutları kaydediliyor...');
+    console.log('Sunucu slash komutları kaydediliyor...');
     await rest.put(
       Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
       { body: commands }
     );
-    console.log('Komutlar başarıyla kaydedildi!');
+    console.log('Sunucu komutları başarıyla kaydedildi!');
+
+    console.log('Global slash komutları kaydediliyor (ping)...');
+    await rest.put(
+      Routes.applicationCommands(process.env.CLIENT_ID),
+      { body: globalCommands }
+    );
+    console.log('Global komutlar başarıyla kaydedildi! (Yayılması ~1 saat sürebilir)');
   } catch (error) {
     console.error('Hata:', error);
   }
