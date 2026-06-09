@@ -331,8 +331,8 @@ client.on('interactionCreate', async interaction => {
     return;
   }
 
-  // ── /BRANŞ-RÜTBE ──
-  if (cmd === 'branş-rütbe') {
+  // ── /BRANŞ-RÜTBE-VER ──
+  if (cmd === 'branş-rütbe-ver') {
     await interaction.deferReply({ ephemeral: false });
 
     const hedefAdi   = interaction.options.getString('kullanici');
