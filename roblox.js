@@ -100,4 +100,164 @@ async function getUserGroups(userId) {
   return res.data.data;
 }
 
-module.exports = { setCookie, login, getGroupRoles, getUserId, getUserRankInGroup, setRank, getUserGroups };
+// Belirli bir gruptaki kullanıcı rütbesini çek (groupId parametreli)
+async function getUserRankInSpecificGroup(userId, groupId) {
+  try {
+    const res = await axios.get(`https://groups.roblox.com/v1/users/${userId}/groups/roles`);
+    const group = res.data.data.find(g => g.group.id === groupId);
+    return group ? group.role.rank : 0;
+  } catch {
+    return 0;
+  }
+}
+
+// Belirli bir gruptan kullanıcıyı at (kick)
+async function kickFromGroup(userId, groupId) {
+  if (!xcsrfToken) await getXCSRF();
+
+  try {
+    await axios.delete(
+      `https://groups.roblox.com/v1/groups/${groupId}/users/${userId}`,
+      {
+        headers: {
+          Cookie: `.ROBLOSECURITY=${cookie}`,
+          'X-CSRF-TOKEN': xcsrfToken,
+        }
+      }
+    );
+  } catch (err) {
+    if (err.response && err.response.status === 403) {
+      await getXCSRF();
+      await axios.delete(
+        `https://groups.roblox.com/v1/groups/${groupId}/users/${userId}`,
+        {
+          headers: {
+            Cookie: `.ROBLOSECURITY=${cookie}`,
+            'X-CSRF-TOKEN': xcsrfToken,
+          }
+        }
+      );
+    } else {
+      throw err;
+    }
+  }
+}
+
+// Belirli bir gruptaki rolleri çek
+async function getGroupRolesById(groupId) {
+  const res = await axios.get(`https://groups.roblox.com/v1/groups/${groupId}/roles`);
+  return res.data.roles;
+}
+
+// Belirli bir grupta rütbe değiştir
+async function setRankInGroup(userId, roleId, groupId) {
+  if (!xcsrfToken) await getXCSRF();
+
+  try {
+    await axios.patch(
+      `https://groups.roblox.com/v1/groups/${groupId}/users/${userId}`,
+      { roleId },
+      {
+        headers: {
+          Cookie: `.ROBLOSECURITY=${cookie}`,
+          'X-CSRF-TOKEN': xcsrfToken,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+  } catch (err) {
+    if (err.response && err.response.status === 403) {
+      await getXCSRF();
+      await axios.patch(
+        `https://groups.roblox.com/v1/groups/${groupId}/users/${userId}`,
+        { roleId },
+        {
+          headers: {
+            Cookie: `.ROBLOSECURITY=${cookie}`,
+            'X-CSRF-TOKEN': xcsrfToken,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+    } else {
+      throw err;
+    }
+  }
+}
+
+// Belirli bir gruptaki join request'i kabul et
+async function acceptJoinRequest(userId, groupId) {
+  if (!xcsrfToken) await getXCSRF();
+
+  try {
+    await axios.post(
+      `https://groups.roblox.com/v1/groups/${groupId}/join-requests/users/${userId}`,
+      {},
+      {
+        headers: {
+          Cookie: `.ROBLOSECURITY=${cookie}`,
+          'X-CSRF-TOKEN': xcsrfToken,
+        }
+      }
+    );
+  } catch (err) {
+    if (err.response && err.response.status === 403) {
+      await getXCSRF();
+      await axios.post(
+        `https://groups.roblox.com/v1/groups/${groupId}/join-requests/users/${userId}`,
+        {},
+        {
+          headers: {
+            Cookie: `.ROBLOSECURITY=${cookie}`,
+            'X-CSRF-TOKEN': xcsrfToken,
+          }
+        }
+      );
+    } else {
+      throw err;
+    }
+  }
+}
+
+// Belirli bir gruptaki join request'i reddet
+async function declineJoinRequest(userId, groupId) {
+  if (!xcsrfToken) await getXCSRF();
+
+  try {
+    await axios.delete(
+      `https://groups.roblox.com/v1/groups/${groupId}/join-requests/users/${userId}`,
+      {
+        headers: {
+          Cookie: `.ROBLOSECURITY=${cookie}`,
+          'X-CSRF-TOKEN': xcsrfToken,
+        }
+      }
+    );
+  } catch (err) {
+    if (err.response && err.response.status === 403) {
+      await getXCSRF();
+      await axios.delete(
+        `https://groups.roblox.com/v1/groups/${groupId}/join-requests/users/${userId}`,
+        {
+          headers: {
+            Cookie: `.ROBLOSECURITY=${cookie}`,
+            'X-CSRF-TOKEN': xcsrfToken,
+          }
+        }
+      );
+    } else {
+      throw err;
+    }
+  }
+}
+
+// Belirli bir gruptaki rolün yetkilerini çek
+async function getGroupRolePermissions(groupId, roleId) {
+  const res = await axios.get(
+    `https://groups.roblox.com/v1/groups/${groupId}/roles/${roleId}/permissions`,
+    { headers: { Cookie: `.ROBLOSECURITY=${cookie}` } }
+  );
+  return res.data.permissions;
+}
+
+module.exports = { setCookie, login, getGroupRoles, getGroupRolesById, getUserId, getUserRankInGroup, getUserRankInSpecificGroup, kickFromGroup, acceptJoinRequest, declineJoinRequest, getGroupRolePermissions, setRank, setRankInGroup, getUserGroups };

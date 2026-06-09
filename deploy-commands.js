@@ -65,6 +65,93 @@ const commands = [
     ),
 
   new SlashCommandBuilder()
+    .setName('branş-rütbe-ver')
+    .setDescription('Bir kullanıcıya branş grubunda rütbe ver')
+    .addStringOption(o =>
+      o.setName('kullanici')
+       .setDescription('Rütbe verilecek Roblox kullanıcı adı')
+       .setRequired(true)
+    )
+    .addStringOption(o =>
+      o.setName('branş')
+       .setDescription('Hangi branş grubu')
+       .setRequired(true)
+       .addChoices(
+         { name: 'JGK',   value: '511181149' },
+         { name: 'Hava',  value: '627383677' },
+         { name: 'AS.İZ', value: '858980946' },
+         { name: 'SM',    value: '528755654' },
+         { name: 'ÖKK',   value: '677805553' },
+         { name: 'KK',    value: '804959765' },
+       )
+    )
+    .addStringOption(o =>
+      o.setName('rütbe')
+       .setDescription('Verilecek rütbeyi seç')
+       .setRequired(true)
+       .setAutocomplete(true)
+    )
+    .addStringOption(o =>
+      o.setName('sebep')
+       .setDescription('Sebep')
+       .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
+    .setName('branş-istek')
+    .setDescription('Bir kullanıcının branş grubu katılım isteğini kabul et veya reddet')
+    .addStringOption(o =>
+      o.setName('kullanici')
+       .setDescription('Kabul edilecek Roblox kullanıcı adı')
+       .setRequired(true)
+    )
+    .addStringOption(o =>
+      o.setName('branş')
+       .setDescription('Hangi branş grubuna katılım isteği')
+       .setRequired(true)
+       .addChoices(
+         { name: 'JGK',   value: '511181149' },
+         { name: 'Hava',  value: '627383677' },
+         { name: 'AS.İZ', value: '858980946' },
+         { name: 'SM',    value: '528755654' },
+         { name: 'ÖKK',   value: '677805553' },
+         { name: 'KK',    value: '804959765' },
+       )
+    )
+    .addStringOption(o =>
+      o.setName('sebep')
+       .setDescription('Sebep')
+       .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
+    .setName('branş-at')
+    .setDescription('Bir kullanıcıyı belirtilen branş grubundan at')
+    .addStringOption(o =>
+      o.setName('kullanici')
+       .setDescription('Roblox kullanıcı adı')
+       .setRequired(true)
+    )
+    .addStringOption(o =>
+      o.setName('branş')
+       .setDescription('Hangi branş grubundan atılacak')
+       .setRequired(true)
+       .addChoices(
+         { name: 'JGK',   value: '511181149' },
+         { name: 'Hava',  value: '627383677' },
+         { name: 'AS.İZ', value: '858980946' },
+         { name: 'SM',    value: '528755654' },
+         { name: 'ÖKK',   value: '677805553' },
+         { name: 'KK',    value: '804959765' },
+       )
+    )
+    .addStringOption(o =>
+      o.setName('sebep')
+       .setDescription('Atılma sebebi')
+       .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
     .setName('grup')
     .setDescription('TMS grup ve oyun linklerini göster'),
 

@@ -5,6 +5,15 @@ const roblox = require('./roblox');
 const fs = require('fs');
 const axios = require('axios');
 
+const BRANS_GRUPLARI = {
+  '511181149': 'JGK',
+  '627383677': 'Hava',
+  '858980946': 'AS.İZ',
+  '528755654': 'SM',
+  '677805553': 'ÖKK',
+  '804959765': 'KK',
+};
+
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 
 // Ticket verisi
@@ -66,6 +75,25 @@ client.on('interactionCreate', async interaction => {
   // ── AUTOCOMPLETE ──
   if (interaction.isAutocomplete()) {
     const cmd = interaction.commandName;
+
+    // Branş rütbe autocomplete
+    if (cmd === 'branş-rütbe-ver') {
+      try {
+        const groupIdStr = interaction.options.getString('branş');
+        if (!groupIdStr) return await interaction.respond([]);
+        const groupId = parseInt(groupIdStr);
+        const roles = await roblox.getGroupRolesById(groupId);
+        const focusedValue = interaction.options.getFocused().toLowerCase();
+        const sorted = roles.filter(r => r.rank > 0).sort((a, b) => a.rank - b.rank);
+        const filtered = (focusedValue
+          ? sorted.filter(r => r.name.toLowerCase().includes(focusedValue) || String(r.rank).includes(focusedValue))
+          : sorted
+        ).slice(0, 25).map(r => ({ name: `[${r.rank}] ${r.name}`, value: String(r.id) }));
+        await interaction.respond(filtered);
+      } catch { await interaction.respond([]); }
+      return;
+    }
+
     if (!(cmd in commandConfig)) return;
     try {
       const roles = await roblox.getGroupRoles();
@@ -300,6 +328,284 @@ client.on('interactionCreate', async interaction => {
       )
       .setTimestamp();
     await interaction.reply({ embeds: [embed] });
+    return;
+  }
+
+  // ── /BRANŞ-RÜTBE ──
+  if (cmd === 'branş-rütbe') {
+    await interaction.deferReply({ ephemeral: false });
+
+    const hedefAdi   = interaction.options.getString('kullanici');
+    const groupIdStr = interaction.options.getString('branş');
+    const roleId     = parseInt(interaction.options.getString('rütbe'));
+    const sebep      = interaction.options.getString('sebep');
+    const groupId    = parseInt(groupIdStr);
+    const bransAdi   = BRANS_GRUPLARI[groupIdStr];
+
+    // 1. RoWifi ile komutu kullananın Roblox hesabını doğrula
+    let verenId = null;
+    let verenAdi = null;
+    try {
+      const rowifiRes = await axios.get(
+        `https://api.rowifi.xyz/v2/guilds/${interaction.guildId}/members/${interaction.user.id}`,
+        { headers: { 'Authorization': `Bot ${process.env.ROWIFI_API_KEY}` } }
+      );
+      verenId = rowifiRes.data.roblox_id;
+      const robloxUserRes = await axios.get(`https://users.roblox.com/v1/users/${verenId}`);
+      verenAdi = robloxUserRes.data.name;
+    } catch {
+      return interaction.editReply({ embeds: [errorEmbed('Hesap Doğrulanmamış', 'RoWifi ile Roblox hesabını doğrulamadın. `/verify` komutunu kullan.')] });
+    }
+
+    if (!verenId) {
+      return interaction.editReply({ embeds: [errorEmbed('Hesap Doğrulanmamış', 'RoWifi ile Roblox hesabını doğrulamadın.')] });
+    }
+
+    // 2. Rütbeleri al ve hedef rütbeyi bul
+    const roles = await roblox.getGroupRolesById(groupId);
+    const targetRole = roles.find(r => r.id === roleId);
+    if (!targetRole) {
+      return interaction.editReply({ embeds: [errorEmbed('Geçersiz Rütbe', 'Seçilen rütbe bulunamadı.')] });
+    }
+
+    // 3. Kullananın branş grubundaki rütbesini kontrol et
+    const verenRank = await roblox.getUserRankInSpecificGroup(verenId, groupId);
+    if (verenRank === 0) {
+      return interaction.editReply({ embeds: [errorEmbed('Yetersiz Yetki', `**${bransAdi}** branşında üye değilsin.`)] });
+    }
+    if (targetRole.rank >= verenRank) {
+      return interaction.editReply({ embeds: [errorEmbed('Yetersiz Rütbe', `Kendi rütbenden (**Rank ${verenRank}**) eşit veya yüksek rütbe veremezsin.\nSeçilen: \`[${targetRole.rank}] ${targetRole.name}\``)] });
+    }
+
+    // 4. Hedef kullanıcıyı bul
+    const hedefId = await roblox.getUserId(hedefAdi);
+    if (!hedefId) {
+      return interaction.editReply({ embeds: [errorEmbed('Bulunamadı', `**${hedefAdi}** adlı Roblox kullanıcısı bulunamadı.`)] });
+    }
+
+    // Kendine rütbe veremesin
+    if (hedefId === verenId) {
+      return interaction.editReply({ embeds: [errorEmbed('Geçersiz İşlem', 'Kendine rütbe veremezsin.')] });
+    }
+
+    const hedefRank = await roblox.getUserRankInSpecificGroup(hedefId, groupId);
+    if (hedefRank === 0) {
+      return interaction.editReply({ embeds: [errorEmbed('Hedef Grupta Değil', `**${hedefAdi}**, **${bransAdi}** branşında üye değil.`)] });
+    }
+
+    // 5. Rütbe değiştir
+    try {
+      await roblox.setRankInGroup(hedefId, roleId, groupId);
+    } catch (err) {
+      return interaction.editReply({ embeds: [errorEmbed('Hata', `Rütbe değiştirilemedi: \`${err.message}\``)] });
+    }
+
+    const avatarUrl = `https://www.roblox.com/headshot-thumbnail/image?userId=${hedefId}&width=420&height=420&format=png`;
+
+    const embed = new EmbedBuilder()
+      .setColor(0x2ecc71)
+      .setAuthor({ name: `🏅 Branş Rütbesi Verildi`, iconURL: interaction.guild.iconURL({ dynamic: true }) ?? undefined })
+      .setThumbnail(avatarUrl)
+      .addFields(
+        { name: '👤 Hedef Kullanıcı', value: `[${hedefAdi}](https://www.roblox.com/users/${hedefId}/profile)`, inline: true },
+        { name: '🪖 Branş', value: bransAdi, inline: true },
+        { name: '🏅 Verilen Rütbe', value: `\`[${targetRole.rank}] ${targetRole.name}\``, inline: true },
+        { name: '📝 Sebep', value: sebep, inline: false },
+        { name: '🛡️ İşlemi Yapan', value: `${interaction.user} (${verenAdi})`, inline: true },
+        { name: '🕐 Tarih', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true }
+      )
+      .setFooter({ text: `Roblox ID: ${hedefId}` })
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [embed] });
+
+    const logChannel = client.channels.cache.get(process.env.LOG_CHANNEL_ID);
+    if (logChannel && logChannel.id !== interaction.channelId) {
+      await logChannel.send({ embeds: [embed] });
+    }
+    return;
+  }
+
+  // ── /BRANŞ-İSTEK ──
+  if (cmd === 'branş-istek') {
+    await interaction.deferReply({ ephemeral: false });
+
+    const hedefAdi   = interaction.options.getString('kullanici');
+    const groupIdStr = interaction.options.getString('branş');
+    const sebep      = interaction.options.getString('sebep');
+    const groupId    = parseInt(groupIdStr);
+    const bransAdi   = BRANS_GRUPLARI[groupIdStr];
+
+    // 1. RoWifi ile komutu kullananın Roblox hesabını doğrula
+    let verenId = null;
+    let verenAdi = null;
+    try {
+      const rowifiRes = await axios.get(
+        `https://api.rowifi.xyz/v2/guilds/${interaction.guildId}/members/${interaction.user.id}`,
+        { headers: { 'Authorization': `Bot ${process.env.ROWIFI_API_KEY}` } }
+      );
+      verenId = rowifiRes.data.roblox_id;
+      const robloxUserRes = await axios.get(`https://users.roblox.com/v1/users/${verenId}`);
+      verenAdi = robloxUserRes.data.name;
+    } catch {
+      return interaction.editReply({ embeds: [errorEmbed('Hesap Doğrulanmamış', 'RoWifi ile Roblox hesabını doğrulamadın. `/verify` komutunu kullan.')] });
+    }
+
+    if (!verenId) {
+      return interaction.editReply({ embeds: [errorEmbed('Hesap Doğrulanmamış', 'RoWifi ile Roblox hesabını doğrulamadın.')] });
+    }
+
+    // 2. Kullananın branş grubundaki rolünü bul
+    let verenRoleId = null;
+    try {
+      const grupRes = await axios.get(`https://groups.roblox.com/v1/users/${verenId}/groups/roles`);
+      const grupBilgi = grupRes.data.data.find(g => g.group.id === groupId);
+      if (!grupBilgi) {
+        return interaction.editReply({ embeds: [errorEmbed('Yetersiz Yetki', `**${bransAdi}** branşında üye değilsin.`)] });
+      }
+      verenRoleId = grupBilgi.role.id;
+    } catch (err) {
+      return interaction.editReply({ embeds: [errorEmbed('Hata', `Grup bilgisi alınamadı: \`${err.message}\``)] });
+    }
+
+    // 3. Rolün join request yönetme yetkisi var mı kontrol et
+    try {
+      const perms = await roblox.getGroupRolePermissions(groupId, verenRoleId);
+      if (!perms.groupMembershipPermissions?.inviteMembers) {
+        return interaction.editReply({ embeds: [errorEmbed('Yetersiz Yetki', `**${bransAdi}** branşında istek kabul etme yetkin yok.`)] });
+      }
+    } catch (err) {
+      return interaction.editReply({ embeds: [errorEmbed('Hata', `Yetki kontrolü yapılamadı: \`${err.message}\``)] });
+    }
+
+    // 4. Hedef kullanıcının ID'sini al
+    const hedefId = await roblox.getUserId(hedefAdi);
+    if (!hedefId) {
+      return interaction.editReply({ embeds: [errorEmbed('Bulunamadı', `**${hedefAdi}** adlı Roblox kullanıcısı bulunamadı.`)] });
+    }
+
+    // 5. İsteği kabul et
+    try {
+      await roblox.acceptJoinRequest(hedefId, groupId);
+    } catch (err) {
+      // 400 genellikle "istek yok" anlamına gelir
+      if (err.response?.status === 400) {
+        return interaction.editReply({ embeds: [errorEmbed('İstek Bulunamadı', `**${hedefAdi}** adlı kullanıcının **${bransAdi}** grubuna bekleyen bir katılım isteği yok.`)] });
+      }
+      return interaction.editReply({ embeds: [errorEmbed('Hata', `İstek kabul edilemedi: \`${err.message}\``)] });
+    }
+
+    const avatarUrl = `https://www.roblox.com/headshot-thumbnail/image?userId=${hedefId}&width=420&height=420&format=png`;
+
+    const embed = new EmbedBuilder()
+      .setColor(0x2ecc71)
+      .setAuthor({ name: `✅ Branş İsteği Kabul Edildi`, iconURL: interaction.guild.iconURL({ dynamic: true }) ?? undefined })
+      .setThumbnail(avatarUrl)
+      .addFields(
+        { name: '👤 Kabul Edilen', value: `[${hedefAdi}](https://www.roblox.com/users/${hedefId}/profile)`, inline: true },
+        { name: '🪖 Branş', value: bransAdi, inline: true },
+        { name: '\u200B', value: '\u200B', inline: true },
+        { name: '📝 Sebep', value: sebep, inline: false },
+        { name: '🛡️ İşlemi Yapan', value: `${interaction.user} (${verenAdi})`, inline: true },
+        { name: '🕐 Tarih', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true }
+      )
+      .setFooter({ text: `Roblox ID: ${hedefId}` })
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [embed] });
+
+    const logChannel = client.channels.cache.get(process.env.LOG_CHANNEL_ID);
+    if (logChannel && logChannel.id !== interaction.channelId) {
+      await logChannel.send({ embeds: [embed] });
+    }
+    return;
+  }
+
+  // ── /BRANŞ-AT ──
+  if (cmd === 'branş-at') {
+    await interaction.deferReply({ ephemeral: false });
+
+    const hedefAdi  = interaction.options.getString('kullanici');
+    const groupIdStr = interaction.options.getString('branş');
+    const sebep     = interaction.options.getString('sebep');
+    const groupId   = parseInt(groupIdStr);
+    const bransAdi  = BRANS_GRUPLARI[groupIdStr];
+
+    // 1. RoWifi ile komutu kullananın Roblox hesabını doğrula
+    let verenId = null;
+    let verenAdi = null;
+    try {
+      const rowifiRes = await axios.get(
+        `https://api.rowifi.xyz/v2/guilds/${interaction.guildId}/members/${interaction.user.id}`,
+        { headers: { 'Authorization': `Bot ${process.env.ROWIFI_API_KEY}` } }
+      );
+      verenId = rowifiRes.data.roblox_id;
+      const robloxUserRes = await axios.get(`https://users.roblox.com/v1/users/${verenId}`);
+      verenAdi = robloxUserRes.data.name;
+    } catch {
+      return interaction.editReply({ embeds: [errorEmbed('Hesap Doğrulanmamış', 'RoWifi ile Roblox hesabını doğrulamadın. `/verify` komutunu kullan.')] });
+    }
+
+    if (!verenId) {
+      return interaction.editReply({ embeds: [errorEmbed('Hesap Doğrulanmamış', 'RoWifi ile Roblox hesabını doğrulamadın.')] });
+    }
+
+    // 2. Hedef kullanıcının ID'sini al
+    const hedefId = await roblox.getUserId(hedefAdi);
+    if (!hedefId) {
+      return interaction.editReply({ embeds: [errorEmbed('Bulunamadı', `**${hedefAdi}** adlı Roblox kullanıcısı bulunamadı.`)] });
+    }
+
+    // 3. Kendini atamaz
+    if (hedefId === verenId) {
+      return interaction.editReply({ embeds: [errorEmbed('Geçersiz İşlem', 'Kendini gruptan atamazsın.')] });
+    }
+
+    // 4. Rütbe kontrolü — her iki kullanıcının branş grubundaki rütbesine bak
+    const verenRank  = await roblox.getUserRankInSpecificGroup(verenId,  groupId);
+    const hedefRank  = await roblox.getUserRankInSpecificGroup(hedefId, groupId);
+
+    if (verenRank === 0) {
+      return interaction.editReply({ embeds: [errorEmbed('Yetersiz Yetki', `**${bransAdi}** branşında üye değilsin.`)] });
+    }
+    if (hedefRank === 0) {
+      return interaction.editReply({ embeds: [errorEmbed('Hedef Grupta Değil', `**${hedefAdi}**, **${bransAdi}** branşında üye değil.`)] });
+    }
+    if (hedefRank >= verenRank) {
+      return interaction.editReply({ embeds: [errorEmbed('Yetersiz Rütbe', `Kendi rütbenden (**Rank ${verenRank}**) eşit veya yüksek rütbeli birini atamazsın.\nHedef rütbesi: **Rank ${hedefRank}**`)] });
+    }
+
+    // 5. Gruptan at
+    try {
+      await roblox.kickFromGroup(hedefId, groupId);
+    } catch (err) {
+      return interaction.editReply({ embeds: [errorEmbed('Hata', `Kullanıcı gruptan atılamadı: \`${err.message}\``)] });
+    }
+
+    const avatarUrl = `https://www.roblox.com/headshot-thumbnail/image?userId=${hedefId}&width=420&height=420&format=png`;
+
+    const embed = new EmbedBuilder()
+      .setColor(0xe74c3c)
+      .setAuthor({ name: `🚫 Branştan Atıldı`, iconURL: interaction.guild.iconURL({ dynamic: true }) ?? undefined })
+      .setThumbnail(avatarUrl)
+      .addFields(
+        { name: '👤 Atılan Kullanıcı', value: `[${hedefAdi}](https://www.roblox.com/users/${hedefId}/profile)`, inline: true },
+        { name: '🪖 Branş', value: bransAdi, inline: true },
+        { name: '\u200B', value: '\u200B', inline: true },
+        { name: '📝 Sebep', value: sebep, inline: false },
+        { name: '🛡️ İşlemi Yapan', value: `${interaction.user} (${verenAdi})`, inline: true },
+        { name: '🕐 Tarih', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true }
+      )
+      .setFooter({ text: `Roblox ID: ${hedefId}` })
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [embed] });
+
+    // Log kanalına gönder
+    const logChannel = client.channels.cache.get(process.env.LOG_CHANNEL_ID);
+    if (logChannel && logChannel.id !== interaction.channelId) {
+      await logChannel.send({ embeds: [embed] });
+    }
     return;
   }
 
