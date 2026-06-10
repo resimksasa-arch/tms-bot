@@ -347,8 +347,8 @@ client.on('interactionCreate', async interaction => {
   if (['oyun-ban', 'oyun-globalban', 'oyun-kick', 'oyun-fly', 'oyun-shutdown'].includes(cmd)) {
     await interaction.deferReply({ ephemeral: false });
 
-    if (!interaction.member.roles.cache.has(process.env.YETKILI_ROL_ID)) {
-      return interaction.editReply({ embeds: [errorEmbed('Yetersiz Yetki', 'Bu komutu kullanmak için yetkin yok.')] });
+    if (!interaction.member.roles.cache.has(process.env.OYUN_YETKILI_ROL_ID)) {
+      return interaction.editReply({ embeds: [errorEmbed('Yetersiz Yetki', 'Bu komutu kullanmak için **Holder** rolüne sahip olman lazım.')] });
     }
 
     const kullanici = interaction.options.getString('kullanici') || null;
