@@ -65,6 +65,34 @@ const commands = [
     ),
 
   new SlashCommandBuilder()
+    .setName('oyun-ban')
+    .setDescription('Oyunda bir oyuncuyu banla')
+    .addStringOption(o => o.setName('kullanici').setDescription('Roblox kullanıcı adı').setRequired(true))
+    .addStringOption(o => o.setName('sebep').setDescription('Sebep').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('oyun-globalban')
+    .setDescription('Oyunda bir oyuncuyu global banla')
+    .addStringOption(o => o.setName('kullanici').setDescription('Roblox kullanıcı adı').setRequired(true))
+    .addStringOption(o => o.setName('sebep').setDescription('Sebep').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('oyun-kick')
+    .setDescription('Oyunda bir oyuncuyu at')
+    .addStringOption(o => o.setName('kullanici').setDescription('Roblox kullanıcı adı').setRequired(true))
+    .addStringOption(o => o.setName('sebep').setDescription('Sebep').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('oyun-fly')
+    .setDescription('Oyunda bir oyuncuya fly ver')
+    .addStringOption(o => o.setName('kullanici').setDescription('Roblox kullanıcı adı').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('oyun-shutdown')
+    .setDescription('Oyun sunucusunu kapat')
+    .addStringOption(o => o.setName('sebep').setDescription('Sebep').setRequired(false)),
+
+  new SlashCommandBuilder()
     .setName('branş-rütbe-ver')
     .setDescription('Bir kullanıcıya branş grubunda rütbe ver')
     .addStringOption(o =>

@@ -8,9 +8,10 @@
     "deploy": "node deploy-commands.js"
   },
   "dependencies": {
+    "axios": "^1.7.2",
     "discord.js": "^14.15.3",
     "dotenv": "^16.4.5",
-    "axios": "^1.7.2",
+    "express": "^5.2.1",
     "noblox.js": "^9.0.0"
   }
 }

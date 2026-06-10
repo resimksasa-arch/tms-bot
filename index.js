@@ -343,6 +343,53 @@ client.on('interactionCreate', async interaction => {
     return;
   }
 
+  // ── /OYUN KOMUTLARI ──
+  if (['oyun-ban', 'oyun-globalban', 'oyun-kick', 'oyun-fly', 'oyun-shutdown'].includes(cmd)) {
+    await interaction.deferReply({ ephemeral: false });
+
+    if (!interaction.member.roles.cache.has(process.env.YETKILI_ROL_ID)) {
+      return interaction.editReply({ embeds: [errorEmbed('Yetersiz Yetki', 'Bu komutu kullanmak için yetkin yok.')] });
+    }
+
+    const kullanici = interaction.options.getString('kullanici') || null;
+    const sebep = interaction.options.getString('sebep') || 'Sebep belirtilmedi';
+
+    const komutMap = {
+      'oyun-ban': 'ban',
+      'oyun-globalban': 'globalban',
+      'oyun-kick': 'kick',
+      'oyun-fly': 'fly',
+      'oyun-shutdown': 'shutdown',
+    };
+    const komut = komutMap[cmd];
+
+    // Kuyruğa ekle
+    commandQueue.push({
+      id: Date.now(),
+      komut,
+      hedef: kullanici,
+      sebep,
+      yapan: interaction.user.tag,
+      zaman: new Date().toISOString(),
+    });
+
+    const komutEmojileri = { ban: '🔨', globalban: '🌐🔨', kick: '👢', fly: '✈️', shutdown: '🔴' };
+    const embed = new EmbedBuilder()
+      .setColor(0xf39c12)
+      .setTitle(`${komutEmojileri[komut]} Oyun Komutu Kuyruğa Eklendi`)
+      .addFields(
+        { name: '⚙️ Komut', value: `\`${komut}\``, inline: true },
+        { name: '👤 Hedef', value: kullanici || '—', inline: true },
+        { name: '📝 Sebep', value: sebep, inline: false },
+        { name: '🛡️ Yapan', value: `${interaction.user}`, inline: true },
+      )
+      .setDescription('Komut oyun sunucusu tarafından alınınca uygulanacak.')
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [embed] });
+    return;
+  }
+
   // ── /BRANŞ-RÜTBE-VER ──
   if (cmd === 'branş-rütbe-ver') {
     await interaction.deferReply({ ephemeral: false });
@@ -919,3 +966,69 @@ client.on('messageCreate', async message => {
 });
 
 client.login(process.env.DISCORD_TOKEN);
+
+// ── EXPRESS HTTP SUNUCUSU ──
+const express = require('express');
+const app = express();
+app.use(express.json());
+
+const ROBLOX_SECRET = process.env.ROBLOX_SECRET || 'tms-secret-key';
+
+// Komut kuyruğu — Roblox script buradan poll eder
+const commandQueue = [];
+
+// ── OYUN → DISCORD LOG ──
+// Adonis komut logları buraya gelir
+app.post('/log', (req, res) => {
+  const { secret, komut, yapan, hedef, oyunAdi, serverId } = req.body;
+
+  if (secret !== ROBLOX_SECRET) {
+    return res.status(401).json({ error: 'Yetkisiz' });
+  }
+
+  const komutEmojileri = {
+    ban: '🔨', globalban: '🌐🔨', kick: '👢',
+    fly: '✈️', shutdown: '🔴'
+  };
+
+  const emoji = komutEmojileri[komut?.toLowerCase()] || '⚙️';
+
+  const logKanal = client.channels.cache.get(process.env.LOG_CHANNEL_ID);
+  if (logKanal) {
+    const embed = new EmbedBuilder()
+      .setColor(komut?.toLowerCase() === 'shutdown' ? 0xe74c3c : 0xf39c12)
+      .setTitle(`${emoji} Oyun İçi Komut — ${komut?.toUpperCase()}`)
+      .addFields(
+        { name: '🎮 Oyun', value: oyunAdi || 'Bilinmiyor', inline: true },
+        { name: '🖥️ Sunucu', value: serverId ? `\`${serverId}\`` : 'Bilinmiyor', inline: true },
+        { name: '\u200B', value: '\u200B', inline: true },
+        { name: '🛡️ Yapan', value: yapan || 'Bilinmiyor', inline: true },
+        { name: '👤 Hedef', value: hedef || '—', inline: true },
+        { name: '🕐 Tarih', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true }
+      )
+      .setTimestamp();
+    logKanal.send({ embeds: [embed] }).catch(console.error);
+  }
+
+  res.json({ ok: true });
+});
+
+// ── DISCORD → OYUN komut kuyruğu ──
+// Roblox script bu endpoint'i poll eder
+app.get('/commands', (req, res) => {
+  const { secret } = req.query;
+  if (secret !== ROBLOX_SECRET) {
+    return res.status(401).json({ error: 'Yetkisiz' });
+  }
+  const cmds = commandQueue.splice(0, commandQueue.length);
+  res.json({ commands: cmds });
+});
+
+// Sunucuyu başlat
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`✅ HTTP sunucusu başlatıldı: port ${PORT}`);
+});
+
+// commandQueue'yu diğer modüllerde kullanmak için export et
+module.exports = { commandQueue };
