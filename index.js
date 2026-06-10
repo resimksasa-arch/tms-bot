@@ -347,8 +347,15 @@ client.on('interactionCreate', async interaction => {
   if (['oyun-ban', 'oyun-globalban', 'oyun-kick', 'oyun-fly', 'oyun-shutdown'].includes(cmd)) {
     await interaction.deferReply({ ephemeral: false });
 
-    if (!interaction.member.roles.cache.has(process.env.OYUN_YETKILI_ROL_ID)) {
-      return interaction.editReply({ embeds: [errorEmbed('Yetersiz Yetki', 'Bu komutu kullanmak için **Holder** rolüne sahip olman lazım.')] });
+    const roleId = process.env.OYUN_YETKILI_ROL_ID;
+    console.log(`[OYUN] Komut: ${cmd}, User: ${interaction.user.id}, Rol gereksiz: ${roleId}, Sahip olduğu roller: ${[...interaction.member.roles.cache.keys()].join(',')}`);
+    
+    if (!roleId) {
+      return interaction.editReply({ embeds: [errorEmbed('Hata', 'OYUN_YETKILI_ROL_ID env variable set edilmemiş.')] });
+    }
+    
+    if (!interaction.member.roles.cache.has(roleId)) {
+      return interaction.editReply({ embeds: [errorEmbed('Yetersiz Yetki', `Bu komutu kullanmak için **Holder** rolüne (<@&${roleId}>) sahip olman lazım.`)] });
     }
 
     const kullanici = interaction.options.getString('kullanici') || null;
