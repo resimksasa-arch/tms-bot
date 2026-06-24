@@ -36,7 +36,7 @@ async function loginRoblox() {
   }
 }
 
-client.once('ready', async () => {
+client.once('clientReady', async () => {
   console.log(`✅ Discord botu hazır: ${client.user.tag}`);
   client.user.setPresence({
     activities: [{ name: 'Made by Ryena', type: 4 }],
@@ -971,6 +971,13 @@ client.on('messageCreate', async message => {
     await message.reply({ embeds: [embed] });
   }
 });
+
+if (!process.env.DISCORD_TOKEN) {
+  console.error("❌ HATA: DISCORD_TOKEN bulunamadı!");
+  console.error("Eğer botu Railway, Render veya benzeri bir sunucuda çalıştırıyorsanız, panelden Environment Variables (Ortam Değişkenleri) kısmına DISCORD_TOKEN eklemeniz gerekir.");
+  console.error(".env dosyası .gitignore'da olduğu için sunucuya yüklenmez.");
+  process.exit(1);
+}
 
 client.login(process.env.DISCORD_TOKEN);
 
