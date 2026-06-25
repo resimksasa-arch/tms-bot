@@ -711,8 +711,8 @@ client.on('interactionCreate', async interaction => {
       const universeId = 10199585255;
       const res = await axios.get(`https://games.roblox.com/v1/games?universeIds=${universeId}`);
       
-      if (!res.data.data || res.data.data.length === 0) {
-        return interaction.editReply({ embeds: [errorEmbed('Hata', 'Oyun bulunamadı. Universe ID kontrol edin.')] });
+      if (!res.data || !res.data.data || res.data.data.length === 0) {
+        return interaction.editReply({ embeds: [errorEmbed('Hata', 'Oyun bulunamadı.')] });
       }
       
       const oyun = res.data.data[0];
