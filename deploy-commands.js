@@ -180,6 +180,10 @@ const commands = [
     ),
 
   new SlashCommandBuilder()
+    .setName('askerler')
+    .setDescription('Şu an oyundaki askerleri göster'),
+
+  new SlashCommandBuilder()
     .setName('aktiflik')
     .setDescription('Oyunda kaç kişi olduğunu göster'),
 

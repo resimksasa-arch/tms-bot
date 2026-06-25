@@ -4,6 +4,33 @@ const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder
 const roblox = require('./roblox');
 const fs = require('fs');
 const axios = require('axios');
+const express = require('express');
+
+// HTTP sunucusu — Roblox'tan gelen verileri alır
+const app = express();
+app.use(express.json());
+
+// Oyundaki oyuncular
+const oyuncular = {}; // { username: { joinTime: Date } }
+
+// Gizli key — Roblox scriptinde aynı olmalı
+const WEBHOOK_SECRET = 'TMS_SECRET_KEY_2024';
+
+app.post('/oyuncu', (req, res) => {
+  const { secret, username, action } = req.body;
+  if (secret !== WEBHOOK_SECRET) return res.status(403).json({ error: 'Yetkisiz' });
+
+  if (action === 'join') {
+    oyuncular[username] = { joinTime: Date.now() };
+  } else if (action === 'leave') {
+    delete oyuncular[username];
+  }
+  res.json({ success: true });
+});
+
+app.get('/health', (req, res) => res.send('OK'));
+
+app.listen(3000, () => console.log('✅ HTTP sunucusu 3000 portunda çalışıyor'));
 
 const BRANS_GRUPLARI = {
   '511181149': 'JGK',
@@ -651,12 +678,43 @@ client.on('interactionCreate', async interaction => {
     return;
   }
 
+  // ── /ASKERLER ──
+  if (cmd === 'askerler') {
+    await interaction.deferReply({ ephemeral: false });
+
+    const liste = Object.entries(oyuncular);
+    if (liste.length === 0) {
+      return interaction.editReply({ embeds: [new EmbedBuilder().setColor(0x95a5a6).setTitle('👥 Oyundaki Askerler').setDescription('Şu an oyunda kimse yok.').setTimestamp()] });
+    }
+
+    const simdi = Date.now();
+    const satirlar = liste.map(([username, data]) => {
+      const sure = Math.floor((simdi - data.joinTime) / 60000);
+      const sureStr = sure < 60 ? `${sure} dk` : `${Math.floor(sure/60)} sa ${sure%60} dk`;
+      return `👤 **${username}** — ${sureStr}`;
+    });
+
+    const embed = new EmbedBuilder()
+      .setColor(0x2ecc71)
+      .setTitle(`🎮 Oyundaki Askerler (${liste.length} kişi)`)
+      .setDescription(satirlar.join('\n'))
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [embed] });
+    return;
+  }
+
   // ── /AKTİFLİK ──
   if (cmd === 'aktiflik') {
     await interaction.deferReply({ ephemeral: false });
     try {
-      const universeId = 3019985255;
+      const universeId = 10199585255;
       const res = await axios.get(`https://games.roblox.com/v1/games?universeIds=${universeId}`);
+      
+      if (!res.data.data || res.data.data.length === 0) {
+        return interaction.editReply({ embeds: [errorEmbed('Hata', 'Oyun bulunamadı. Universe ID kontrol edin.')] });
+      }
+      
       const oyun = res.data.data[0];
 
       const embed = new EmbedBuilder()
