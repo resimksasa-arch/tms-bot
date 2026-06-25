@@ -180,6 +180,10 @@ const commands = [
     ),
 
   new SlashCommandBuilder()
+    .setName('aktiflik')
+    .setDescription('Oyunda kaç kişi olduğunu göster'),
+
+  new SlashCommandBuilder()
     .setName('grup')
     .setDescription('TMS grup ve oyun linklerini göster'),
 

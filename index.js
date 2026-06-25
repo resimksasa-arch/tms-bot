@@ -651,6 +651,34 @@ client.on('interactionCreate', async interaction => {
     return;
   }
 
+  // ── /AKTİFLİK ──
+  if (cmd === 'aktiflik') {
+    await interaction.deferReply({ ephemeral: false });
+    try {
+      const universeId = 3019985255;
+      const res = await axios.get(`https://games.roblox.com/v1/games?universeIds=${universeId}`);
+      const oyun = res.data.data[0];
+
+      const embed = new EmbedBuilder()
+        .setColor(oyun.playing > 0 ? 0x2ecc71 : 0x95a5a6)
+        .setTitle('🎮 Oyun Aktiflik Durumu')
+        .setThumbnail(`https://www.roblox.com/asset-thumbnail/image?assetId=${oyun.rootPlaceId}&width=768&height=432&format=png`)
+        .addFields(
+          { name: '🎮 Oyun', value: oyun.name, inline: false },
+          { name: '👥 Şu An Oynayan', value: `**${oyun.playing.toLocaleString()}** kişi`, inline: true },
+          { name: '👁️ Ziyaretçi', value: `**${oyun.visits.toLocaleString()}** toplam`, inline: true },
+          { name: '❤️ Beğeni', value: `**${oyun.favoritedCount?.toLocaleString() || '?'}**`, inline: true },
+          { name: '🔗 Oyun Linki', value: `[Oyuna Gir](https://www.roblox.com/games/${oyun.rootPlaceId})`, inline: false }
+        )
+        .setTimestamp();
+
+      await interaction.editReply({ embeds: [embed] });
+    } catch (err) {
+      await interaction.editReply({ embeds: [errorEmbed('Hata', `Oyun bilgisi alınamadı: ${err.message}`)] });
+    }
+    return;
+  }
+
   // ── /GRUP ──
   if (cmd === 'grup') {
     const embed = new EmbedBuilder()
